@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useBooking } from '../BookingContext';
 import { useLanguage } from '../LanguageContext';
 import { X, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle2 } from 'lucide-react';
@@ -11,6 +11,12 @@ export default function BookingModal() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    service: ''
+  });
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -64,11 +70,42 @@ export default function BookingModal() {
     return bookedSlots[dateStr]?.includes(time) || false;
   };
 
-  const handleConfirm = () => {
+  const handleContinue = () => {
+    if (selectedDate && selectedTime) {
+      setStep(2);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (selectedDate && selectedTime) {
       const dateStr = selectedDate.toISOString().split('T')[0];
       addBookedSlot(dateStr, selectedTime);
-      setStep(2);
+      
+      const bookingData = {
+        date: dateStr,
+        time: selectedTime,
+        ...formData
+      };
+
+      try {
+        // Replace this URL with your actual n8n Production Webhook URL
+        const N8N_WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/booking';
+        
+        await fetch(N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(bookingData),
+        });
+      } catch (error) {
+        console.error("Error sending booking data to n8n:", error);
+        // We still proceed to step 3 so the user sees the success message,
+        // but in a real app you might want to show an error message.
+      }
+
+      setStep(3);
     }
   };
 
@@ -78,6 +115,7 @@ export default function BookingModal() {
       setStep(1);
       setSelectedDate(null);
       setSelectedTime(null);
+      setFormData({ name: '', email: '', phone: '', service: '' });
     }, 300);
   };
 
@@ -114,7 +152,7 @@ export default function BookingModal() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {step === 1 ? (
+              {step === 1 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Calendar */}
                   <div>
@@ -226,7 +264,81 @@ export default function BookingModal() {
                     )}
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {step === 2 && (
+                <div className="max-w-md mx-auto py-4">
+                  <div className="mb-6">
+                    <button 
+                      onClick={() => setStep(1)}
+                      className="text-stone-500 hover:text-stone-900 flex items-center gap-2 text-sm font-medium transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Back
+                    </button>
+                  </div>
+                  <h3 className="text-2xl font-serif text-stone-900 mb-6">
+                    {t.bookingModal.formTitle}
+                  </h3>
+                  <form id="booking-form" onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium text-stone-700 mb-1">
+                        {t.bookingModal.name} *
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-4 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-stone-700 mb-1">
+                        {t.bookingModal.email} *
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-4 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-stone-700 mb-1">
+                        {t.bookingModal.phone} *
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        required
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full px-4 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="service" className="block text-sm font-medium text-stone-700 mb-1">
+                        {t.bookingModal.service} *
+                      </label>
+                      <input
+                        type="text"
+                        id="service"
+                        required
+                        placeholder={t.bookingModal.servicePlaceholder}
+                        value={formData.service}
+                        onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+                        className="w-full px-4 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all"
+                      />
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {step === 3 && (
                 <div className="py-12 flex flex-col items-center justify-center text-center">
                   <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
                     <CheckCircle2 className="w-8 h-8" />
@@ -274,7 +386,7 @@ export default function BookingModal() {
               <div className="p-6 border-t border-stone-100 bg-stone-50 flex justify-end">
                 <button
                   disabled={!selectedDate || !selectedTime}
-                  onClick={handleConfirm}
+                  onClick={handleContinue}
                   className={`
                     px-8 py-3 rounded-full font-medium transition-all shadow-sm cursor-pointer
                     ${selectedDate && selectedTime 
@@ -282,6 +394,18 @@ export default function BookingModal() {
                       : 'bg-stone-200 text-stone-400 cursor-not-allowed'
                     }
                   `}
+                >
+                  {t.bookingModal.continue}
+                </button>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="p-6 border-t border-stone-100 bg-stone-50 flex justify-end">
+                <button
+                  type="submit"
+                  form="booking-form"
+                  className="bg-stone-900 text-white px-8 py-3 rounded-full font-medium hover:bg-stone-800 transition-all shadow-sm cursor-pointer"
                 >
                   {t.bookingModal.confirm}
                 </button>
