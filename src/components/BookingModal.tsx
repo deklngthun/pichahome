@@ -90,7 +90,7 @@ export default function BookingModal() {
 
       try {
         // Replace this URL with your actual n8n Production Webhook URL
-        const N8N_WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/booking';
+        const N8N_WEBHOOK_URL = 'https://punnawich.app.n8n.cloud/webhook-test/form-submission';
         
         await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
