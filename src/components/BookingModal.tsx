@@ -76,7 +76,7 @@ export default function BookingModal() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedDate && selectedTime) {
       const dateStr = selectedDate.toISOString().split('T')[0];
@@ -88,24 +88,21 @@ export default function BookingModal() {
         ...formData
       };
 
-      try {
-        // Replace this URL with your actual n8n Production Webhook URL
-        const N8N_WEBHOOK_URL = 'https://punnawich.app.n8n.cloud/webhook-test/form-submission';
-        
-        await fetch(N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(bookingData),
-        });
-      } catch (error) {
-        console.error("Error sending booking data to n8n:", error);
-        // We still proceed to step 3 so the user sees the success message,
-        // but in a real app you might want to show an error message.
-      }
-
+      // Show success screen immediately for a faster user experience
       setStep(3);
+
+      // Send data to n8n webhook in the background
+      const N8N_WEBHOOK_URL = 'https://punnawich.app.n8n.cloud/webhook/form-submission';
+      
+      fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData),
+      }).catch((error) => {
+        console.error("Error sending booking data to n8n:", error);
+      });
     }
   };
 
